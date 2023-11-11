@@ -58,8 +58,6 @@ class TiktokLoginFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
 
   private fun authorize(call: MethodCall, result: MethodChannel.Result) {
 
-
-
     try {
 
       val scope: String = call.argument<String>("scope")!!
@@ -81,7 +79,7 @@ class TiktokLoginFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware
       if (request != null) {
         authApi.authorize(
             request = request,
-            authMethod = AuthMethod.TikTokApp // AuthMethod.ChromeTab
+            authMethod = AuthMethod.ChromeTab // AuthMethod.TikTokApp
         )
       }
 

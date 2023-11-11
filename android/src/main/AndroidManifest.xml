@@ -5,9 +5,9 @@
         <package android:name="com.ss.android.ugc.trill" />
     </queries>
     <application>
-        <activity
-            android:name=".tiktokapi.TikTokEntryActivity"
-            android:exported="true">
-        </activity>
+<!--        <activity-->
+<!--            android:name=".tiktokapi.TikTokEntryActivity"-->
+<!--            android:exported="true">-->
+<!--        </activity>-->
     </application>
 </manifest>

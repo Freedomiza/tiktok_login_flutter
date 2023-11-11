@@ -1,19 +1,21 @@
 package com.raiinmaker.tiktok_login_flutter
 
+//import com.bytedance.sdk.open.tiktok.TikTokOpenApiFactory
+//import com.bytedance.sdk.open.tiktok.TikTokOpenConfig
+//import com.bytedance.sdk.open.tiktok.api.TikTokOpenApi
+//import com.bytedance.sdk.open.tiktok.authorize.model.Authorization
 import android.app.Activity
-import androidx.annotation.NonNull
-import com.bytedance.sdk.open.tiktok.TikTokOpenApiFactory
-import com.bytedance.sdk.open.tiktok.TikTokOpenConfig
-import com.bytedance.sdk.open.tiktok.api.TikTokOpenApi
-import com.bytedance.sdk.open.tiktok.authorize.model.Authorization
 import com.raiinmaker.tiktok_login_flutter.tiktokapi.TikTokEntryActivity
+import com.tiktok.open.sdk.auth.AuthApi
+import com.tiktok.open.sdk.auth.AuthApi.AuthMethod
+import com.tiktok.open.sdk.auth.AuthRequest
+import com.tiktok.open.sdk.auth.utils.PKCEUtils
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-
 
 
 /** TiktokLoginFlutterPlugin */
@@ -26,15 +28,17 @@ class TiktokLoginFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware 
   /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
   private var activity: Activity? = null
+  private var clientKey: String? = null
+  private lateinit var authApi: AuthApi
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+  override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "tiktok_login_flutter")
 
     channel.setMethodCallHandler(this)
 
   }
 
-  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result:MethodChannel.Result) {
+  override fun onMethodCall(call: MethodCall, result:MethodChannel.Result) {
     when (call.method) {
       "initializeTiktokLogin" -> initializeTiktokLogin(call = call, result = result)
       "authorize" -> authorize(call = call, result = result)
@@ -44,10 +48,16 @@ class TiktokLoginFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware 
 
   private fun initializeTiktokLogin(call: MethodCall, result:MethodChannel.Result) {
     try {
-      val clientKey =  call.arguments as String
-      val tiktokOpenConfig = TikTokOpenConfig(clientKey)
-      TikTokOpenApiFactory.init(tiktokOpenConfig)
+       clientKey =  call.arguments as String
+      //val tiktokOpenConfig = TikTokOpenConfig(clientKey)
+      //TikTokOpenApiFactory.init(tiktokOpenConfig)
 
+      // STEP 1: Create an instance of AuthApi
+      authApi = activity?.let {
+          AuthApi(
+            activity = it
+          )
+      }!!
       result.success(true)
 
     } catch (e: Exception) {
@@ -68,14 +78,37 @@ class TiktokLoginFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware 
       }
 
       try {
-        val scope:String =  call.argument<String>("scope")!!
 
-        val tiktokOpenApi: TikTokOpenApi = TikTokOpenApiFactory.create(activity)
-        val request = Authorization.Request()
-        request.scope = scope
-        request.state = "xxx"
-        request.callerLocalEntry = "com.raiinmaker.tiktok_login_flutter.tiktokapi.TikTokEntryActivity"
-        tiktokOpenApi.authorize(request);
+
+
+        val scope:String =  call.argument<String>("scope")!!
+        val redirectUri:String =  call.argument<String>("redirectUri")!!
+
+
+//        val tiktokOpenApi: TikTokOpenApi = TikTokOpenApiFactory.create(activity)
+
+        // STEP 2: Create an AuthRequest and set parameters
+        val request = clientKey?.let {
+          AuthRequest(
+            clientKey = it,
+            scope = scope,
+            state = "xxx",
+            redirectUri = redirectUri,
+            codeVerifier = PKCEUtils.generateCodeVerifier()
+          )
+        }
+        if(request!=null ) {
+          authApi.authorize(
+            request = request,
+            authMethod = AuthMethod.TikTokApp  // AuthMethod.ChromeTab
+          )
+        }
+
+//        request.scope = scope
+//        request.state = "xxx"
+//        request.callerLocalEntry = "com.raiinmaker.tiktok_login_flutter.tiktokapi.TikTokEntryActivity"
+//        tiktokOpenApi.authorize(request);
+
       } catch (e: Exception) {
         result.error(
                 "AUTHORIZATION_REQUEST_FAILED",
@@ -86,7 +119,7 @@ class TiktokLoginFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware 
       }
   }
 
-  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+  override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
   }
 
